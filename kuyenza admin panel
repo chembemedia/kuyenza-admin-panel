@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuyenza Delivery Admin</title>
+    <style>
+        /* General Styles and Variables */
+        :root {
+            --primary-color: #0a5c36;
+            --secondary-color: #e0f2e8;
+            --text-color: #333;
+            --light-text-color: #666;
+            --white: #fff;
+            --border-color: #eee;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: var(--font-family);
+            margin: 0;
+            background-color: #f7f9fc;
+            color: var(--text-color);
+            display: grid;
+            grid-template-columns: 1fr; /* Default: single column for mobile */
+            height: 100vh;
+        }
+
+        /* Top Bar for Mobile */
+        .mobile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--white);
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .mobile-header .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .mobile-header .menu-icon {
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        /* Sidebar Navigation (initially hidden on mobile) */
+        .sidebar {
+            background-color: var(--white);
+            padding: 24px;
+            border-right: 1px solid var(--border-color);
+            display: none; /* Initially hidden on mobile */
+            flex-direction: column;
+            overflow-y: auto;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100%;
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .sidebar .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .sidebar .logo span {
+            color: #ccc;
+        }
+
+        .sidebar .profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .sidebar .profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+        }
+
+        .sidebar .profile .info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar .profile .info .name {
+            font-weight: 600;
+        }
+
+        .sidebar .profile .info .status {
+            font-size: 12px;
+            color: var(--light-text-color);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sidebar .profile .info .status .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+        }
+
+        .sidebar .nav-group {
+            margin-bottom: 24px;
+        }
+
+        .sidebar .nav-group-title {
+            text-transform: uppercase;
+            font-size: 12px;
+            color: var(--light-text-color);
+            margin-bottom: 12px;
+        }
+
+        .sidebar .nav-group ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar .nav-group ul li {
+            margin-bottom: 8px;
+        }
+
+        .sidebar .nav-group ul li a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            color: var(--text-color);
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .sidebar .nav-group ul li a i {
+            font-size: 18px;
+        }
+
+        .sidebar .nav-group ul li a.active,
+        .sidebar .nav-group ul li a:hover {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .sidebar .nav-group ul li a .badge {
+            margin-left: auto;
+            background-color: #ff3b30;
+            color: var(--white);
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .sidebar .credits {
+            margin-top: auto;
+            text-align: center;
+            font-size: 12px;
+            color: var(--light-text-color);
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .sidebar .nav-group ul li a.parent i.chevron {
+            margin-left: auto;
+            transition: transform 0.2s;
+        }
+        
+        .sidebar .nav-group ul li a.parent.open i.chevron {
+            transform: rotate(90deg);
+        }
+        
+        .sidebar .nav-group ul li a.parent.open + .sub-menu {
+            display: block;
+        }
+        
+        .sidebar .sub-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: none;
+        }
+        
+        .sidebar .sub-menu li a {
+            padding-left: 48px;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Top Header Bar */
+        .header {
+            display: none; /* Initially hidden on mobile */
+            background-color: var(--white);
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--border-color);
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header .breadcrumbs {
+            display: none; /* Hide breadcrumbs on mobile */
+        }
+
+        .header .top-nav {
+            display: flex;
+            gap: 24px;
+        }
+
+        .header .top-nav a {
+            color: var(--light-text-color);
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            padding: 16px;
+        }
+
+        .dashboard-content h1 {
+            font-size: 28px;
+            margin-top: 0;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* Default: single column for mobile */
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .card {
+            background-color: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card.card-large {
+            grid-column: span 1; /* Default: single column span for mobile */
+        }
+        
+        .card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .card .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .card .card-header .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .card .card-header .actions .action-btn {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-color);
+        }
+
+        .card .card-header .actions .action-btn i {
+            margin-right: 4px;
+        }
+
+        .metric-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-card .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .metric-card .label {
+            font-size: 14px;
+            color: var(--light-text-color);
+        }
+
+        .metric-card .icon-container {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--secondary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .metric-card .icon-container i {
+            font-size: 20px;
+            color: var(--primary-color);
+        }
+        
+        .metric-card .icon-container.blue { background-color: #e3f2fd; }
+        .metric-card .icon-container.blue i { color: #2196F3; }
+        
+        .metric-card .icon-container.orange { background-color: #fff3e0; }
+        .metric-card .icon-container.orange i { color: #FF9800; }
+        
+        .metric-card .icon-container.red { background-color: #ffebee; }
+        .metric-card .icon-container.red i { color: #F44336; }
+        
+        .metric-card .icon-container.green { background-color: #e8f5e9; }
+        .metric-card .icon-container.green i { color: #4CAF50; }
+        
+        .metric-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .metric-list .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-list .metric-item .value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .metric-list .metric-item .label {
+            font-size: 14px;
+            color: var(--light-text-color);
+        }
+
+        /* --- Media Queries for Responsiveness --- */
+
+        /* Desktop and larger screens */
+        @media (min-width: 769px) {
+            body {
+                grid-template-columns: 250px 1fr;
+            }
+            .sidebar {
+                display: flex; /* Show sidebar on large screens */
+                position: static;
+                transform: translateX(0);
+            }
+            .mobile-header {
+                display: none; /* Hide mobile header */
+            }
+            .header {
+                display: flex; /* Show desktop header */
+            }
+            .header .breadcrumbs {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .dashboard-content {
+                padding: 32px;
+            }
+        }
+
+        /* Large tablets and small laptops */
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .card.card-large {
+                grid-column: span 1;
+            }
+        }
+        
+        /* Large desktops */
+        @media (min-width: 1201px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 24px;
+            }
+            .card.card-large {
+                grid-column: span 2;
+            }
+        }
+        
+        /* Mobile menu overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+        .overlay.active {
+            display: block;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <header class="mobile-header">
+        <div class="logo">Kuyenza</div>
+        <i class="fas fa-bars menu-icon" id="menu-icon"></i>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">Kuyenza</div>
+        <div class="profile">
+            <img src="https://i.pravatar.cc/150?u=a" alt="User Profile Picture">
+            <div class="info">
+                <span class="name">Super Admin</span>
+                <span class="status"><span class="dot"></span> Online</span>
+            </div>
+        </div>
+
+        <nav class="main-nav">
+            <div class="nav-group">
+                <h4 class="nav-group-title">Main Navigation</h4>
+                <ul>
+                    <li><a href="#"><i class="fas fa-handshake"></i> Onboarding</a></li>
+                    <li><a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a href="#"><i class="fas fa-shopping-bag"></i> Orders <span class="badge">296</span></a></li>
+                    <li><a href="#"><i class="fas fa-users"></i> Customers</a></li>
+                    <li><a href="#"><i class="fas fa-mobile-alt"></i> Configure Mobile Apps</a></li>
+                    <li><a href="#"><i class="fas fa-globe"></i> Custom Domain</a></li>
+                    <li><a href="#"><i class="fas fa-store"></i> Marketplace</a></li>
+                </ul>
+            </div>
+            
+            <div class="nav-group">
+                <h4 class="nav-group-title">Settings</h4>
+                <ul>
+                    <li><a href="#"><i class="fas fa-file-invoice-dollar"></i> Surcharge Settings</a></li>
+                    <li><a href="#"><i class="fas fa-cog"></i> Global Settings</a></li>
+                    <li><a href="#"><i class="fas fa-receipt"></i> Billing</a></li>
+                    <li><a href="#"><i class="fas fa-percent"></i> Promotions</a></li>
+                    <li class="has-sub"><a href="#" class="parent"><i class="fas fa-store-alt"></i> Store Management <i class="fas fa-chevron-right chevron"></i></a>
+                        <ul class="sub-menu">
+                            <li><a href="#">Add Stores</a></li>
+                            <li><a href="#">View Stores</a></li>
+                        </ul>
+                    </li>
+                    <li class="has-sub"><a href="#" class="parent"><i class="fas fa-chart-bar"></i> Reporting <i class="fas fa-chevron-right chevron"></i></a>
+                        <ul class="sub-menu">
+                            <li><a href="#">Sales Report</a></li>
+                            <li><a href="#">Order Report</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        
+        <div class="credits">Built with Chembe Media Agency</div>
+    </aside>
+
+    <div class="overlay" id="overlay"></div>
+
+    <main class="main-content">
+        <header class="header">
+            <div class="breadcrumbs">
+                <a href="#">Home</a>
+                <span>/</span>
+                <span class="current">Dashboard</span>
+            </div>
+            <div class="top-nav">
+                <a href="#"><i class="fas fa-truck"></i> Delivery Orders</a>
+                <a href="#"><i class="fas fa-list"></i> Dispatch</a>
+                <a href="#"><i class="fas fa-user-tie"></i> Dispatcher</a>
+                <a href="#"><i class="fas fa-cogs"></i> Settings</a>
+                <a href="#"><i class="fas fa-store"></i> Stores</a>
+                <a href="#"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+            </div>
+        </header>
+
+        <section class="dashboard-content">
+            <h1>Dashboard</h1>
+            
+            <div class="dashboard-grid">
+                <div class="card metric-card">
+                    <div>
+                        <div class="value">ZMK 86,802.60</div>
+                        <div class="label">Sales</div>
+                    </div>
+                    <div class="icon-container blue">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div>
+                        <div class="value">383</div>
+                        <div class="label">Delivered</div>
+                    </div>
+                    <div class="icon-container orange">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <div>
+                        <div class="value">1067</div>
+                        <div class="label">New Orders</div>
+                    </div>
+                    <div class="icon-container red">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                </div>
+                
+                <div class="card metric-card">
+                    <div>
+                        <div class="value">502</div>
+                        <div class="label">Total Customers</div>
+                    </div>
+                    <div class="icon-container green">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                </div>
+
+                <div class="card card-large">
+                    <div class="card-header">
+                        <h3>All Orders</h3>
+                        <div class="actions">
+                            <button class="action-btn" onclick="exportCSV('orders')"><i class="fas fa-file-csv"></i> CSV Export</button>
+                            <button class="action-btn" onclick="exportPDF('orders')"><i class="fas fa-file-pdf"></i> PDF Export</button>
+                        </div>
+                    </div>
+                    <div class="metric-list">
+                        <div class="metric-item">
+                            <div class="value">1067</div>
+                            <div class="label">New Orders</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="value">ZMK 86,802.60</div>
+                            <div class="label">Orders Price</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>User Details</h3>
+                    </div>
+                    <div class="metric-list">
+                        <div class="metric-item">
+                            <div class="value">502</div>
+                            <div class="label">Total Users</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="value">3</div>
+                            <div class="label">Deactive Users</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="value">499</div>
+                            <div class="label">Active Users</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Store Details</h3>
+                    </div>
+                    <div class="metric-list">
+                        <div class="metric-item">
+                            <div class="value">169</div>
+                            <div class="label">Total Stores</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="value">111</div>
+                            <div class="label">Deactive Stores</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="value">58</div>
+                            <div class="label">Active Stores</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Driver Details</h3>
+                        <div class="actions">
+                            <button class="action-btn" onclick="addDriver()"><i class="fas fa-plus"></i> Add Drivers</button>
+                        </div>
+                    </div>
+                    <div class="metric-list">
+                        <div class="metric-item">
+                            <div class="value">293</div>
+                            <div class="label">Total Drivers</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="value">129</div>
+                            <div class="label">Deactive Drivers</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="value">164</div>
+                            <div class="label">Active Drivers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Example for API Integration
+        async function fetchDashboardData() {
+            try {
+                // Fetch orders data
+                const ordersResponse = await fetch('https://your-api-endpoint.com/api/orders');
+                const ordersData = await ordersResponse.json();
+                console.log('Orders data:', ordersData);
+
+                // Fetch customer data
+                const customersResponse = await fetch('https://your-api-endpoint.com/api/customers');
+                const customersData = await customersResponse.json();
+                console.log('Customers data:', customersData);
+
+                // Fetch driver data
+                const driversResponse = await fetch('https://your-api-endpoint.com/api/drivers');
+                const driversData = await driversResponse.json();
+                console.log('Drivers data:', driversData);
+
+                // Fetch stores data
+                const storesResponse = await fetch('https://your-api-endpoint.com/api/stores');
+                const storesData = await storesResponse.json();
+                console.log('Stores data:', storesData);
+
+                // You would update the UI elements here with the fetched data
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // Placeholder functions for button actions
+        function exportCSV(type) {
+            alert(`This would export the ${type} data to a CSV file.`);
+        }
+
+        function exportPDF(type) {
+            alert(`This would generate a PDF for the ${type} data.`);
+        }
+        
+        function addDriver() {
+            alert('This would open a form to add a new driver.');
+        }
+        
+        // Mobile Sidebar Functionality
+        const sidebar = document.getElementById('sidebar');
+        const menuIcon = document.getElementById('menu-icon');
+        const overlay = document.getElementById('overlay');
+
+        menuIcon.addEventListener('click', () => {
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+
+        // Sidebar Sub-menu functionality
+        document.querySelectorAll('.sidebar .parent').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                this.classList.toggle('open');
+                const subMenu = this.nextElementSibling;
+                if (subMenu) {
+                    subMenu.style.display = this.classList.contains('open') ? 'block' : 'none';
+                }
+            });
+        });
+
+        // Call the data fetching function on page load (uncomment to test with your own API)
+        // window.addEventListener('load', fetchDashboardData);
+    </script>
+</body>
+</html>
