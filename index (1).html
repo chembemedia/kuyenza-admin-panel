@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kuyenza Delivery Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f7f9f9;
+      color: #333;
+    }
+    header {
+      background: #0a5c36;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .sidebar {
+      width: 220px;
+      background: #fff;
+      border-right: 1px solid #ddd;
+      position: fixed;
+      top: 50px;
+      bottom: 0;
+      padding: 15px;
+      overflow-y: auto;
+    }
+    .sidebar h2 {
+      font-size: 14px;
+      margin: 20px 0 10px;
+      color: #0a5c36;
+    }
+    .sidebar a {
+      display: block;
+      padding: 8px;
+      margin-bottom: 6px;
+      text-decoration: none;
+      color: #333;
+      border-radius: 4px;
+    }
+    .sidebar a:hover {
+      background: #0a5c36;
+      color: #fff;
+    }
+    .content {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    .card h3 {
+      margin: 10px 0 0;
+    }
+    .btn {
+      background: #0a5c36;
+      border: none;
+      color: #fff;
+      padding: 8px 12px;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .table th, .table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 12px;
+      text-align: center;
+      color: #555;
+    }
+    .auth-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-box {
+      background: #fff;
+      padding: 30px;
+      border-radius: 6px;
+      width: 300px;
+      text-align: center;
+    }
+    .auth-box input {
+      width: 90%;
+      margin: 10px 0;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- AUTH -->
+    <div v-if="!state.authenticated" class="auth-screen">
+      <div class="auth-box">
+        <h2>Login</h2>
+        <input v-model="auth.user" placeholder="Username" />
+        <input v-model="auth.pass" type="password" placeholder="Password" />
+        <button class="btn" @click="login">Login</button>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <header v-if="state.authenticated">
+      <h1>Kuyenza Delivery Admin</h1>
+      <div>
+        <button class="btn" @click="exportPDF">Export PDF</button>
+        <button class="btn" @click="exportCSV">Export CSV</button>
+        <button class="btn" @click="logout">Logout</button>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <nav v-if="state.authenticated" class="sidebar">
+      <h2>MAIN NAVIGATION</h2>
+      <a @click="state.page='dashboard'">Dashboard</a>
+      <a @click="state.page='orders'">Orders</a>
+      <a @click="state.page='customers'">Customers</a>
+      <a @click="state.page='drivers'">Drivers</a>
+      <a @click="state.page='stores'">Stores</a>
+      <a @click="state.page='payments'">Payments</a>
+      <h2>SETTINGS</h2>
+      <a @click="state.page='settings'">Global Settings</a>
+    </nav>
+
+    <!-- CONTENT -->
+    <main v-if="state.authenticated" class="content">
+      <!-- Dashboard -->
+      <section v-if="state.page==='dashboard'">
+        <h2>Dashboard</h2>
+        <div class="cards">
+          <div class="card">
+            <h3>ZMW {{state.sales}}</h3>
+            <p>Sales</p>
+          </div>
+          <div class="card">
+            <h3>{{state.delivered}}</h3>
+            <p>Delivered</p>
+          </div>
+          <div class="card">
+            <h3>{{state.orders.length}}</h3>
+            <p>Orders</p>
+          </div>
+          <div class="card">
+            <h3>{{state.customers.length}}</h3>
+            <p>Customers</p>
+          </div>
+          <div class="card">
+            <h3>{{state.drivers.length}}</h3>
+            <p>Drivers</p>
+          </div>
+          <div class="card">
+            <h3>{{state.stores.length}}</h3>
+            <p>Stores</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders -->
+      <section v-if="state.page==='orders'">
+        <h2>Orders</h2>
+        <table class="table">
+          <tr><th>ID</th><th>Customer</th><th>Status</th><th>Assign Driver</th></tr>
+          <tr v-for="o in state.orders" :key="o.id">
+            <td>{{o.id}}</td>
+            <td>{{o.customer}}</td>
+            <td>{{o.status}}</td>
+            <td>
+              <select v-model="o.driver">
+                <option disabled value="">Assign Driver</option>
+                <option v-for="d in state.drivers" :value="d.name">{{d.name}}</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+      </section>
+
+      <!-- Customers -->
+      <section v-if="state.page==='customers'">
+        <h2>Customers</h2>
+        <ul><li v-for="c in state.customers">{{c.name}} - {{c.email}}</li></ul>
+      </section>
+
+      <!-- Drivers -->
+      <section v-if="state.page==='drivers'">
+        <h2>Drivers</h2>
+        <ul><li v-for="d in state.drivers">{{d.name}} - {{d.phone}}</li></ul>
+        <input v-model="newDriver.name" placeholder="Driver Name" />
+        <input v-model="newDriver.phone" placeholder="Phone" />
+        <button class="btn" @click="addDriver">Add Driver</button>
+      </section>
+
+      <!-- Stores -->
+      <section v-if="state.page==='stores'">
+        <h2>Stores</h2>
+        <ul><li v-for="s in state.stores">{{s.name}} - {{s.location}}</li></ul>
+        <input v-model="newStore.name" placeholder="Store Name" />
+        <input v-model="newStore.location" placeholder="Location" />
+        <button class="btn" @click="addStore">Add Store</button>
+      </section>
+
+      <!-- Payments -->
+      <section v-if="state.page==='payments'">
+        <h2>Payment Methods</h2>
+        <p><strong>Airtel Money</strong> - Mock integration UI</p>
+        <p><strong>MTN Money</strong> - Mock integration UI</p>
+        <button class="btn">Simulate Airtel Payment</button>
+        <button class="btn">Simulate MTN Payment</button>
+      </section>
+
+      <!-- Settings -->
+      <section v-if="state.page==='settings'">
+        <h2>Global Settings</h2>
+        <p>Settings UI here...</p>
+      </section>
+
+      <div class="footer">
+        Built with Chembe Media Agency
+      </div>
+    </main>
+  </div>
+
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        auth: { user:"", pass:"" },
+        state: {
+          authenticated: false,
+          page: "dashboard",
+          sales: 86802.60,
+          delivered: 383,
+          orders: [],
+          customers: [],
+          drivers: [],
+          stores: []
+        },
+        newDriver: { name:"", phone:"" },
+        newStore: { name:"", location:"" }
+      }
+    },
+    mounted() {
+      this.fetchOrders();
+      this.fetchCustomers();
+      this.fetchDrivers();
+      this.fetchStores();
+    },
+    methods: {
+      login() {
+        if(this.auth.user && this.auth.pass){
+          this.state.authenticated = true;
+        }
+      },
+      logout(){ this.state.authenticated = false; },
+      fetchOrders() {
+        // Example fetch to REST API
+        fetch("/api/orders").then(r=>r.json()).then(data=>this.state.orders=data)
+        .catch(()=> {
+          // fallback mock
+          this.state.orders = [
+            {id:1, customer:"John", status:"Pending", driver:""},
+            {id:2, customer:"Mary", status:"Delivered", driver:"Peter"}
+          ];
+        });
+      },
+      fetchCustomers() {
+        fetch("/api/customers").then(r=>r.json()).then(data=>this.state.customers=data)
+        .catch(()=> { this.state.customers=[{name:"John", email:"john@mail.com"}]; });
+      },
+      fetchDrivers() {
+        fetch("/api/drivers").then(r=>r.json()).then(data=>this.state.drivers=data)
+        .catch(()=> { this.state.drivers=[{name:"Peter", phone:"097xxxx"}]; });
+      },
+      fetchStores() {
+        fetch("/api/stores").then(r=>r.json()).then(data=>this.state.stores=data)
+        .catch(()=> { this.state.stores=[{name:"Shoprite", location:"Lusaka"}]; });
+      },
+      addDriver() {
+        if(this.newDriver.name){
+          this.state.drivers.push({...this.newDriver});
+          this.newDriver={name:"",phone:""};
+        }
+      },
+      addStore() {
+        if(this.newStore.name){
+          this.state.stores.push({...this.newStore});
+          this.newStore={name:"",location:""};
+        }
+      },
+      exportCSV() {
+        let csv = "ID,Customer,Status,Driver\n";
+        this.state.orders.forEach(o=>{
+          csv += `${o.id},${o.customer},${o.status},${o.driver}\n`;
+        });
+        const blob = new Blob([csv], {type:"text/csv"});
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "orders.csv";
+        link.click();
+      },
+      exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("Kuyenza Delivery Admin Report", 10, 10);
+        let y=20;
+        this.state.orders.forEach(o=>{
+          doc.text(`Order ${o.id} - ${o.customer} - ${o.status} - Driver: ${o.driver}`,10,y);
+          y+=10;
+        });
+        doc.save("report.pdf");
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>
